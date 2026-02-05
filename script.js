@@ -240,27 +240,27 @@ async function loadPlacementsFromBackend() {
     const res = await fetch(`${BASE_URL}/api/placements`);
     const data = await res.json();
     
+    // नावानुसार सॉर्टिंग
     data.sort((a, b) => a.name.localeCompare(b.name));
     
     const scrollDownContent = scrollDown.querySelector(".scroll-content");
     const scrollUpContent = scrollUp.querySelector(".scroll-content");
 
-    // बॅकएंड डेटा येण्यापूर्वी जुना डेटा साफ करणे (डिझाइन वाचवण्यासाठी)
-    scrollDownContent.innerHTML = "";
-    scrollUpContent.innerHTML = "";
-
+    // Helper to create card HTML
+    // बदल: p.package ऐवजी p.pkg वापरले आणि इमेजसाठी p.image
     const createCard = (p) => `
       <div class="placement-card">
-        <img src="${p.image}" alt="${p.name}"> 
+        <img src="${p.image}" alt="${p.name}">
         <div class="card-info">
           <h4>${p.name}</h4>
           <span>${p.role}</span>
           <p>${p.company}</p>
-          <strong>${p.pkg}</strong> 
+          <strong>${p.pkg}</strong>
         </div>
       </div>
     `;
 
+    // डेटा दोन भागात विभागून Append करणे (+= मुळे आधीचा डेटा जाणार नाही)
     const half = Math.ceil(data.length / 2);
     data
       .slice(0, half)
@@ -269,7 +269,7 @@ async function loadPlacementsFromBackend() {
       .slice(half)
       .forEach((p) => (scrollUpContent.innerHTML += createCard(p)));
 
-    // डेटा रेंडर झाल्यावरच ड्युप्लिकेट करा (एकाच वेळी दोन इमेज येणार नाहीत)
+    // डेटा ॲपेंड झाल्यानंतर क्लोनिंग करणे जेणेकरून स्क्रोल नीट होईल
     duplicate(scrollDown);
     duplicate(scrollUp);
 
@@ -281,15 +281,17 @@ async function loadPlacementsFromBackend() {
 /* ===============================
    Scroll + Pause Logic
 ================================ */
+// ड्युप्लिकेट फंक्शन जेणेकरून स्क्रोलिंग मध्ये गॅप येणार नाही
 const duplicate = (scroller) => {
   const content = scroller.querySelector(".scroll-content");
   if (content && !content.dataset.duplicated) {
     content.innerHTML += content.innerHTML;
-    content.dataset.duplicated = "true"; // एकदाच ड्युप्लिकेट व्हावे म्हणून
+    content.dataset.duplicated = "true"; 
   }
 };
 
 window.addEventListener("load", async () => {
+  // बॅकएंड डेटा लोड करा
   await loadPlacementsFromBackend();
   
   const scrollDown = document.getElementById("scrollDown");
@@ -298,6 +300,7 @@ window.addEventListener("load", async () => {
   let pauseDown = false;
   let pauseUp = false;
 
+  // Pause events
   [
     { el: scrollDown, flag: (val) => (pauseDown = val) },
     { el: scrollUp, flag: (val) => (pauseUp = val) },
@@ -310,25 +313,30 @@ window.addEventListener("load", async () => {
     el.addEventListener("touchend", () => flag(false));
   });
 
+  // Animation loop
   function animate() {
     const isDesktop = window.innerWidth > 768;
     if (isDesktop) {
       if (!pauseDown && scrollDown) {
         scrollDown.scrollTop += speed;
-        if (scrollDown.scrollTop >= scrollDown.scrollHeight / 2) scrollDown.scrollTop = 0;
+        if (scrollDown.scrollTop >= scrollDown.scrollHeight / 2)
+          scrollDown.scrollTop = 0;
       }
       if (!pauseUp && scrollUp) {
         scrollUp.scrollTop -= speed;
-        if (scrollUp.scrollTop <= 0) scrollUp.scrollTop = scrollUp.scrollHeight / 2;
+        if (scrollUp.scrollTop <= 0)
+          scrollUp.scrollTop = scrollUp.scrollHeight / 2;
       }
     } else {
       if (!pauseDown && scrollDown) {
         scrollDown.scrollLeft += speed;
-        if (scrollDown.scrollLeft >= scrollDown.scrollWidth / 2) scrollDown.scrollLeft = 0;
+        if (scrollDown.scrollLeft >= scrollDown.scrollWidth / 2)
+          scrollDown.scrollLeft = 0;
       }
       if (!pauseUp && scrollUp) {
         scrollUp.scrollLeft -= speed;
-        if (scrollUp.scrollLeft <= 0) scrollUp.scrollLeft = scrollUp.scrollWidth / 2;
+        if (scrollUp.scrollLeft <= 0)
+          scrollUp.scrollLeft = scrollUp.scrollWidth / 2;
       }
     }
     requestAnimationFrame(animate);
