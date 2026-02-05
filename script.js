@@ -1,79 +1,97 @@
 // Backend Base URL
 const BASE_URL = "https://mentoresolutions-devops-backend.vercel.app";
 const CERT_API = `${BASE_URL}/api/certificates`;
-// Track previously loaded certificate IDs
+
+// ट्रॅकिंगसाठी
 let prevCertIds = [];
-// Load certificates and populate scrollers
+
+// Certificates लोड करणे आणि Scrollers मध्ये दाखवणे
 async function loadCertificates() {
   try {
     const res = await fetch(CERT_API);
     const certs = await res.json();
+
     if (!certs || certs.length === 0) return;
+
     const scroller1 = document.getElementById("certTrack1");
     const scroller2 = document.getElementById("certTrack2");
+
     if (!scroller1 || !scroller2) return;
-    // Filter new certificates only
+
+    // फक्त नवीन सर्टिफिकेट्स फिल्टर करा जे आधी लोड झाले नाहीत
     const newCerts = certs.filter(c => !prevCertIds.includes(c.id));
-    if (newCerts.length === 0) return; // no updates
-    // Divide new certificates for two scrollers
+    
+    if (newCerts.length === 0) return; // काहीही नवीन नसेल तर थांबवा
+
+    // नवीन सर्टिफिकेट्स दोन भागात विभागणे
     const mid = Math.ceil(newCerts.length / 2);
     const firstHalf = newCerts.slice(0, mid);
     const secondHalf = newCerts.slice(mid);
-    // Append new certificates
+
+    // --- Scroller 1 मध्ये इमेज जोडणे ---
     firstHalf.forEach(c => {
       const img = document.createElement("img");
-      let imagePath = c.image.startsWith("/") ? c.image : `/uploads/certificates/${c.image}`;
-      img.src = `${BASE_URL}${imagePath}`;
-      img.alt = c.title || "Certificate";
+      // Supabase कडून डायरेक्ट Public URL मिळते, म्हणून ती तशीच वापरणे
+      img.src = c.image; 
+      img.alt = "Global Certificate";
       img.classList.add("admin-cert");
       scroller1.appendChild(img);
     });
+
+    // --- Scroller 2 मध्ये इमेज जोडणे ---
     secondHalf.forEach(c => {
       const img = document.createElement("img");
-      let imagePath = c.image.startsWith("/") ? c.image : `/uploads/certificates/${c.image}`;
-      img.src = `${BASE_URL}${imagePath}`;
-      img.alt = c.title || "Certificate";
+      img.src = c.image; 
+      img.alt = "Global Certificate";
       img.classList.add("admin-cert");
       scroller2.appendChild(img);
     });
-    // Duplicate for seamless scroll
-    [scroller1, scroller2].forEach(track => {
-      track.innerHTML += track.innerHTML;
-      const totalWidth = track.scrollWidth / 2;
-      const duration = totalWidth / 40;
-      track.style.animationDuration = `${duration}s`;
-    });
-    // Update previously loaded certificate IDs
+
+    // --- Seamless Scroll साठी लॉजिक (फक्त पहिल्यांदा किंवा अपडेट झाल्यावर) ---
+    setupSeamlessScroll(scroller1);
+    setupSeamlessScroll(scroller2);
+
+    // ID ट्रॅकर अपडेट करणे
     prevCertIds = certs.map(c => c.id);
+
   } catch (err) {
-    console.error("Error loading certificates:", err);
+    console.error("Error loading certificates from Supabase:", err);
   }
 }
-// Initial load
+
+// स्क्रोलिंग स्मूथ करण्यासाठी फंक्शन
+function setupSeamlessScroll(track) {
+  // आधीचा पूर्ण डेटा पुन्हा जोडा (Duplicate) जेणेकरून गॅप पडणार नाही
+  const clones = Array.from(track.children).map(node => node.cloneNode(true));
+  clones.forEach(clone => track.appendChild(clone));
+
+  // ॲनिमेशनचा वेग ऍडजस्ट करणे
+  const totalWidth = track.scrollWidth / 2;
+  const duration = totalWidth / 50; // स्पीड कमी/जास्त करण्यासाठी ५० बदला
+  track.style.animationDuration = `${duration}s`;
+}
+
+// --- INITIALIZE ---
 document.addEventListener("DOMContentLoaded", () => {
+  // सुरुवातीला लोड करा
   loadCertificates();
-  // Auto-refresh every 10 seconds (adjust if needed)
-  setInterval(loadCertificates, 10000);
-});
 
-
-document.addEventListener("DOMContentLoaded", () => {
+  // टायपिंग इफेक्ट (तुमचा जुना कोड)
   const el = document.querySelector(".banner-tagline");
-  if (!el) return;
-  const text = el.textContent.trim();
-  el.textContent = ""; // clear initially
-  let index = 0;
-  const speed = 50; // typing speed (ms)
-  function type() {
-    if (index < text.length) {
-      el.textContent += text.charAt(index);
-      index++;
-      setTimeout(type, speed);
+  if (el) {
+    const text = el.textContent.trim();
+    el.textContent = "";
+    let index = 0;
+    function type() {
+      if (index < text.length) {
+        el.textContent += text.charAt(index);
+        index++;
+        setTimeout(type, 50);
+      }
     }
+    type();
   }
-  type();
 });
-
 // ============================
 // COURSE SECTION - USER PANEL
 // ============================
