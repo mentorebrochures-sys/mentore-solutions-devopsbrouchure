@@ -1,5 +1,5 @@
 // Backend Base URL
-const BASE_URL = "https://mentoresolutions-devops-adminpanel.vercel.app";
+const BASE_URL = "https://mentoresolutions-devops-backend.vercel.app";
 const CERT_API = `${BASE_URL}/api/certificates`;
 // Track previously loaded certificate IDs
 let prevCertIds = [];
