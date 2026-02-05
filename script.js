@@ -129,11 +129,13 @@ async function updateUpcomingBatch() {
 document.addEventListener("DOMContentLoaded", updateUpcomingBatch);
 
 // ===============================
-// Training Js (Updated)
+// Training Section JS (Final Fix)
 // ===============================
 document.addEventListener("DOMContentLoaded", async () => {
   const sliderTrack = document.querySelector(".training-track");
   const sliderViewport = document.querySelector(".training-scroll");
+  
+  // खात्री करा की BASE_URL ग्लोबल फाईलमध्ये डिफाइन आहे
   const API_URL = `${BASE_URL}/api/trainings`;
   
   let moveSpeed = 1.5;
@@ -143,56 +145,92 @@ document.addEventListener("DOMContentLoaded", async () => {
   function formatDate(dateStr) {
     if (!dateStr) return "TBA";
     const date = new Date(dateStr);
+    if (isNaN(date.getTime())) return "TBA"; // Invalid date चेक
     const day = String(date.getDate()).padStart(2, '0');
     const month = String(date.getMonth() + 1).padStart(2, '0');
     const year = date.getFullYear();
     return `${day}-${month}-${year}`;
   }
 
-  // ================= BACKEND TRAININGS FETCH =================
-  try {
-    const res = await fetch(API_URL);
-    const trainings = await res.json();
-    
-    trainings.forEach(t => {
-      const card = document.createElement("div");
-      card.className = "training-card";
+  // ================= BACKEND मधून डेटा लोड करणे =================
+  async function fetchAndDisplayTrainings() {
+    try {
+      const res = await fetch(API_URL);
+      const trainings = await res.json();
       
-      // बदल: इथे t.start_date आणि t.duration वापरले आहे
-      card.innerHTML = `
-        <i class="${t.icon}"></i>
-        <h4>${t.name}</h4>
-        <div class="training-info">
-          <span>📅 ${formatDate(t.start_date)}</span>
-          <span>⏱ ${t.duration || 'Flexible'}</span>
-        </div>
-      `;
-      sliderTrack.appendChild(card);
-    });
-  } catch (err) {
-    console.error("Error loading trainings from DB:", err);
+      if (!sliderTrack) return;
+      sliderTrack.innerHTML = ""; // जुना डमी डेटा काढण्यासाठी
+
+      if (!trainings || trainings.length === 0) {
+        sliderTrack.innerHTML = "<p>No training sessions available.</p>";
+        return;
+      }
+
+      trainings.forEach(t => {
+        const card = document.createElement("div");
+        card.className = "training-card";
+        
+        // Admin Panel मधून आलेला 'icon' आणि 'name' इथे वापरला आहे
+        // जर Database मध्ये start_date नसेल तर 'formatDate' "TBA" दाखवेल
+        card.innerHTML = `
+          <i class="${t.icon || 'fas fa-graduation-cap'}"></i>
+          <h4>${t.name}</h4>
+          <div class="training-info">
+            <span>📅 ${formatDate(t.start_date)}</span>
+            <span>⏱ ${t.duration || 'Flexible'}</span>
+          </div>
+        `;
+        sliderTrack.appendChild(card);
+      });
+
+      // डेटा लोड झाल्यावर स्लाइडर सुरू करा
+      initializeSlider();
+
+    } catch (err) {
+      console.error("Database मधून ट्रेनिंग लोड करताना एरर आली:", err);
+    }
   }
 
-  // ================= DUPLICATE CARDS & SLIDER LOGIC =================
-  // डेटा लोड झाल्यावर विड्थ मोजण्यासाठी थोडा वेळ (Dely) द्यावा लागतो
-  setTimeout(() => {
-    const baseItems = Array.from(sliderTrack.children);
-    baseItems.forEach(item => sliderTrack.appendChild(item.cloneNode(true)));
+  // ================= SLIDER LOGIC =================
+  function initializeSlider() {
+    // कार्ड्स लोड व्हायला थोडा वेळ देणे (offsetWidth मोजण्यासाठी)
+    setTimeout(() => {
+      const baseItems = Array.from(sliderTrack.children);
+      if (baseItems.length === 0) return;
 
-    let baseWidth = 0;
-    baseItems.forEach(item => (baseWidth += item.offsetWidth + 26));
+      // लूप दिसण्यासाठी कार्ड्स डबल (Clone) करणे
+      baseItems.forEach(item => {
+        const clone = item.cloneNode(true);
+        sliderTrack.appendChild(clone);
+      });
 
-    function runAutoSlider() {
-      currentOffset -= moveSpeed;
-      if (Math.abs(currentOffset) >= baseWidth) currentOffset = 0;
-      sliderTrack.style.transform = `translateX(${currentOffset}px)`;
-      requestAnimationFrame(runAutoSlider);
-    }
-    runAutoSlider();
-  }, 500); 
+      let baseWidth = 0;
+      // प्रत्येक ओरिजिनल कार्डची विड्थ मोजणे
+      baseItems.forEach(item => {
+        baseWidth += item.offsetWidth + 26; // 26 हा तुमचा margin/gap आहे
+      });
 
-  sliderViewport.addEventListener("mouseenter", () => (moveSpeed = 0));
-  sliderViewport.addEventListener("mouseleave", () => (moveSpeed = 1.5));
+      function runAutoSlider() {
+        currentOffset -= moveSpeed;
+        if (Math.abs(currentOffset) >= baseWidth) {
+          currentOffset = 0;
+        }
+        sliderTrack.style.transform = `translateX(${currentOffset}px)`;
+        requestAnimationFrame(runAutoSlider);
+      }
+      
+      runAutoSlider();
+    }, 800); 
+  }
+
+  // Mouse Control
+  if (sliderViewport) {
+    sliderViewport.addEventListener("mouseenter", () => (moveSpeed = 0));
+    sliderViewport.addEventListener("mouseleave", () => (moveSpeed = 1.5));
+  }
+
+  // फंक्शन रन करा
+  fetchAndDisplayTrainings();
 });
 
 //PLACEMENT JS
