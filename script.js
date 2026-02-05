@@ -74,59 +74,64 @@ document.addEventListener("DOMContentLoaded", () => {
   type();
 });
 
+// ============================
+// COURSE SECTION - USER PANEL
+// ============================
 
+// खात्री करा की BASE_URL आधी डिफाइन केला आहे
+const COURSE_USER_API = `${BASE_URL}/api/courses`;
 
-// ====================
-// Courses Page JS
-// ====================
-function toggleFAQ(element) {
-  const faq = element.parentElement;
-  faq.classList.toggle("active");
-}
-function toggleTopics(element) {
-  const box = element.parentElement;
-  box.classList.toggle("active");
-}
-/* Expand the first course box (Linux) when cursor is clicked */
-function expandFirstBox() {
-  const firstBox = document.getElementById("linux-box");
-  if (!firstBox.classList.contains("active")) {
-    firstBox.classList.add("active");
-  }
+/**
+ * तारीख सुंदर फॉरमॅटमध्ये दाखवण्यासाठी (उदा. DD-MM-YYYY)
+ */
+function formatDisplayDate(dateStr) {
+    if (!dateStr) return "TBA";
+    const date = new Date(dateStr);
+    const day = String(date.getDate()).padStart(2, '0');
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const year = date.getFullYear();
+    return `${day}-${month}-${year}`;
 }
 
+/**
+ * डेटाबेस मधून कोर्सेस आणून युजर पॅनेलवर अपडेट करणे
+ */
+async function syncUpcomingBatch() {
+    try {
+        const res = await fetch(COURSE_USER_API);
+        const courses = await res.json();
 
-const COURSE_API = "${BASE_URL}/api/courses";
-// ------------------------------------
-// Format date → YYYY-MM-DD
-// ------------------------------------
-function formatDate(dateStr) {
-  const date = new Date(dateStr);
-  return date.toISOString().split("T")[0];
+        // जर डेटा नसेल किंवा एरर असेल तर
+        if (!courses || courses.length === 0 || courses.error) {
+            console.warn("No courses found for user panel.");
+            return;
+        }
+
+        // शेवटचा (Latest) ॲड केलेला कोर्स मिळवणे
+        const latestCourse = courses[courses.length - 1];
+
+        // युजर पॅनेलवरील कोर्सेस सेक्शनमधील माहितीचे घटक शोधणे
+        const courseInfoContainer = document.querySelector("#courses .course-info");
+        
+        if (courseInfoContainer) {
+            const spans = courseInfoContainer.querySelectorAll("span");
+            
+            if (spans.length >= 2) {
+                // पहिली ओळ: तारीख (Format: DD-MM-YYYY)
+                spans[0].innerHTML = `📅 <strong>New Batch Starting On :</strong> ${formatDisplayDate(latestCourse.start_date)}`;
+                
+                // दुसरी ओळ: ड्युरेशन
+                spans[1].innerHTML = `⏱ <strong>Duration:</strong> ${latestCourse.duration}`;
+            }
+        }
+    } catch (err) {
+        console.error("Failed to sync batch info to user panel:", err);
+    }
 }
-// ------------------------------------
-// Update Upcoming Batch Info
-// ------------------------------------
-async function updateUpcomingBatch() {
-  try {
-    const res = await fetch(COURSE_API);
-    const courses = await res.json();
-    if (!courses || courses.length === 0) return;
-    // Latest course
-    const latest = courses[courses.length - 1];
-    const courseInfo = document.querySelector("#courses .course-info");
-    if (!courseInfo) return;
-    const spans = courseInfo.querySelectorAll("span");
-    spans[0].innerText = `📅 New Batch Starting On : ${formatDate(latest.start_date)}`;
-    spans[1].innerText = `⏱ Duration: ${latest.duration}`;
-  } catch (err) {
-    console.error("Failed to load upcoming batch info:", err);
-  }
-}
-// ------------------------------------
-// Load on page open
-// ------------------------------------
-document.addEventListener("DOMContentLoaded", updateUpcomingBatch);
+
+// पेज लोड झाल्यावर फंक्शन रन करा
+document.addEventListener("DOMContentLoaded", syncUpcomingBatch);
+
 
 // ===============================
 // Training Js (Updated)
