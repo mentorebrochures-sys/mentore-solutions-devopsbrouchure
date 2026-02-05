@@ -240,13 +240,13 @@ async function loadPlacementsFromBackend() {
     const res = await fetch(`${BASE_URL}/api/placements`);
     const data = await res.json();
     
-    // नावानुसार सॉर्ट करा
+    // Sort ascending by student name
     data.sort((a, b) => a.name.localeCompare(b.name));
     
     const scrollDownContent = scrollDown.querySelector(".scroll-content");
     const scrollUpContent = scrollUp.querySelector(".scroll-content");
 
-    // जुना स्टॅटिक डेटा साफ करणे आवश्यक आहे, अन्यथा फोटो दिसणार नाहीत
+    // जुना स्टॅटिक डेटा रिकामा करा जेणेकरून फक्त नवीन डेटा दिसेल
     scrollDownContent.innerHTML = "";
     scrollUpContent.innerHTML = "";
 
@@ -263,27 +263,19 @@ async function loadPlacementsFromBackend() {
       </div>
     `;
 
-    // अर्धा-अर्धा डेटा विभागणे
+    // Split half-half
     const half = Math.ceil(data.length / 2);
-    data.slice(0, half).forEach((p) => (scrollDownContent.innerHTML += createCard(p)));
-    data.slice(half).forEach((p) => (scrollUpContent.innerHTML += createCard(p)));
-
-    // डेटा लोड झाल्यावर क्लोनिंग करणे (Seamless scroll साठी)
-    duplicate(scrollDown);
-    duplicate(scrollUp);
+    data
+      .slice(0, half)
+      .forEach((p) => (scrollDownContent.innerHTML += createCard(p)));
+    data
+      .slice(half)
+      .forEach((p) => (scrollUpContent.innerHTML += createCard(p)));
 
   } catch (err) {
     console.error("Error fetching placements:", err);
   }
 }
-
-// क्लोनिंग फंक्शन
-const duplicate = (scroller) => {
-  const content = scroller.querySelector(".scroll-content");
-  if (content && content.innerHTML.trim() !== "") {
-    content.innerHTML += content.innerHTML;
-  }
-};
 
 // CONTACT JS
 // ===============================
