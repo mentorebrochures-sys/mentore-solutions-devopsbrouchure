@@ -125,49 +125,72 @@ async function updateUpcomingBatch() {
 // Load on page open
 // ------------------------------------
 document.addEventListener("DOMContentLoaded", updateUpcomingBatch);
-// Training Js
+
+// ===============================
+// Training Js (Updated with Date & Duration)
+// ===============================
 document.addEventListener("DOMContentLoaded", async () => {
   const sliderTrack = document.querySelector(".training-track");
   const sliderViewport = document.querySelector(".training-scroll");
   const API_URL = `${BASE_URL}/api/trainings`;
+  
   let moveSpeed = 1.5;
   let currentOffset = 0;
+
+  // तारीख DD-MM-YYYY फॉरमॅटमध्ये करण्यासाठी हेल्पर फंक्शन
+  function formatDate(dateStr) {
+    if (!dateStr) return "TBA";
+    const date = new Date(dateStr);
+    return `${String(date.getDate()).padStart(2, '0')}-${String(date.getMonth() + 1).padStart(2, '0')}-${date.getFullYear()}`;
+  }
+
   // ================= BACKEND TRAININGS FETCH =================
   try {
     const res = await fetch(API_URL);
     const trainings = await res.json();
-    // append DB trainings WITHOUT removing existing HTML
+    
     trainings.forEach(t => {
       const card = document.createElement("div");
       card.className = "training-card";
+      
+      // बदल: इथे duration आणि start_date चे स्पॅन्स ॲड केले आहेत
       card.innerHTML = `
         <i class="${t.icon}"></i>
         <h4>${t.name}</h4>
+        <div class="training-details">
+          <span>📅 Start: ${formatDate(t.start_date)}</span>
+          <span>⏱ Duration: ${t.duration || 'Flexible'}</span>
+        </div>
       `;
       sliderTrack.appendChild(card);
     });
   } catch (err) {
     console.error("Error loading trainings from DB:", err);
   }
+
   // ================= DUPLICATE CARDS FOR INFINITE SCROLL =================
-  const baseItems = Array.from(sliderTrack.children);
-  baseItems.forEach(item => sliderTrack.appendChild(item.cloneNode(true)));
-  // total width calculation
-  let baseWidth = 0;
-  baseItems.forEach(item => (baseWidth += item.offsetWidth + 26));
-  // ================= RUN SLIDER =================
-  function runAutoSlider() {
-    currentOffset -= moveSpeed;
-    if (Math.abs(currentOffset) >= baseWidth) currentOffset = 0;
-    sliderTrack.style.transform = `translateX(${currentOffset}px)`;
-    requestAnimationFrame(runAutoSlider);
-  }
-  runAutoSlider();
+  // डेटा लोड झाल्यावर थोडा वेळ थांबावा लागतो जेणेकरून offsetWidth अचूक मिळेल
+  setTimeout(() => {
+    const baseItems = Array.from(sliderTrack.children);
+    baseItems.forEach(item => sliderTrack.appendChild(item.cloneNode(true)));
+
+    let baseWidth = 0;
+    baseItems.forEach(item => (baseWidth += item.offsetWidth + 26));
+
+    // ================= RUN SLIDER =================
+    function runAutoSlider() {
+      currentOffset -= moveSpeed;
+      if (Math.abs(currentOffset) >= baseWidth) currentOffset = 0;
+      sliderTrack.style.transform = `translateX(${currentOffset}px)`;
+      requestAnimationFrame(runAutoSlider);
+    }
+    runAutoSlider();
+  }, 500); // 500ms चा डिले दिला आहे जेणेकरून इमेजेस/आयकॉन्स लोड होतील
+
   // pause on hover
   sliderViewport.addEventListener("mouseenter", () => (moveSpeed = 0));
   sliderViewport.addEventListener("mouseleave", () => (moveSpeed = 1.5));
 });
-
 
 //PLACEMENT JS
 /* ===============================
