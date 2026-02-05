@@ -162,10 +162,6 @@ document.addEventListener("DOMContentLoaded", async () => {
       card.innerHTML = `
         <i class="${t.icon}"></i>
         <h4>${t.name}</h4>
-        <div class="training-info">
-          <span>📅 ${formatDate(t.start_date)}</span>
-          <span>⏱ ${t.duration || 'Flexible'}</span>
-        </div>
       `;
       sliderTrack.appendChild(card);
     });
