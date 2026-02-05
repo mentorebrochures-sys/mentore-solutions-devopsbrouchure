@@ -94,6 +94,8 @@ function expandFirstBox() {
     firstBox.classList.add("active");
   }
 }
+
+
 const COURSE_API = "${BASE_URL}/api/courses";
 // ------------------------------------
 // Format date → YYYY-MM-DD
@@ -127,19 +129,21 @@ async function updateUpcomingBatch() {
 document.addEventListener("DOMContentLoaded", updateUpcomingBatch);
 
 // ===============================
-// Training Js (Updated)
+// Training Section (User Panel)
 // ===============================
 document.addEventListener("DOMContentLoaded", async () => {
   const sliderTrack = document.querySelector(".training-track");
   const sliderViewport = document.querySelector(".training-scroll");
+  
+  // खात्री करा की BASE_URL आधी डिफाइन केला आहे
   const API_URL = `${BASE_URL}/api/trainings`;
   
   let moveSpeed = 1.5;
   let currentOffset = 0;
 
-  // तारीख DD-MM-YYYY फॉरमॅटमध्ये करण्यासाठी फंक्शन
+  // तारीख सुटसुटीत (DD-MM-YYYY) दिसण्यासाठी फंक्शन
   function formatDate(dateStr) {
-    if (!dateStr) return "TBA";
+    if (!dateStr) return "लवकरच"; // जर तारीख नसेल तर
     const date = new Date(dateStr);
     const day = String(date.getDate()).padStart(2, '0');
     const month = String(date.getMonth() + 1).padStart(2, '0');
@@ -147,18 +151,27 @@ document.addEventListener("DOMContentLoaded", async () => {
     return `${day}-${month}-${year}`;
   }
 
-  // ================= BACKEND TRAININGS FETCH =================
+  // ================= BACKEND मधून डेटा आणणे =================
   try {
     const res = await fetch(API_URL);
     const trainings = await res.json();
     
+    // जुना डेटा साफ करण्यासाठी (काही वेळेस डुप्लिकेट होतात)
+    sliderTrack.innerHTML = "";
+
+    if (trainings.length === 0) {
+        sliderTrack.innerHTML = "<p>सध्या कोणतीही ट्रेनिंग उपलब्ध नाही.</p>";
+        return;
+    }
+
     trainings.forEach(t => {
       const card = document.createElement("div");
       card.className = "training-card";
       
-      // बदल: इथे t.start_date आणि t.duration वापरले आहे
+      // टीप: इथे 'start_date' आणि 'duration' तुमच्या Database मध्ये असणे गरजेचे आहे.
+      // जर नसतील, तर तुम्ही Admin Panel मधून ते पाठवायला हवेत.
       card.innerHTML = `
-        <i class="${t.icon}"></i>
+        <i class="${t.icon || 'fas fa-book'}"></i>
         <h4>${t.name}</h4>
         <div class="training-info">
           <span>📅 ${formatDate(t.start_date)}</span>
@@ -167,30 +180,38 @@ document.addEventListener("DOMContentLoaded", async () => {
       `;
       sliderTrack.appendChild(card);
     });
+
+    // ================= ऑटो स्लाइडर लॉजिक =================
+    // कार्ड्स लोड झाल्यावर त्यांना क्लोन (Clone) करणे जेणेकरून लूप सुरू राहील
+    setTimeout(() => {
+      const baseItems = Array.from(sliderTrack.children);
+      baseItems.forEach(item => sliderTrack.appendChild(item.cloneNode(true)));
+
+      let baseWidth = 0;
+      // प्रत्येक कार्डची विड्थ मोजणे (गॅपसह)
+      baseItems.forEach(item => (baseWidth += item.offsetWidth + 26));
+
+      function runAutoSlider() {
+        currentOffset -= moveSpeed;
+        if (Math.abs(currentOffset) >= baseWidth) currentOffset = 0;
+        sliderTrack.style.transform = `translateX(${currentOffset}px)`;
+        requestAnimationFrame(runAutoSlider);
+      }
+      runAutoSlider();
+    }, 800); // इमेज लोड व्हायला थोडा वेळ दिला
+
   } catch (err) {
     console.error("Error loading trainings from DB:", err);
+    if (sliderTrack) {
+        sliderTrack.innerHTML = "<p>डेटा लोड करताना एरर आली.</p>";
+    }
   }
 
-  // ================= DUPLICATE CARDS & SLIDER LOGIC =================
-  // डेटा लोड झाल्यावर विड्थ मोजण्यासाठी थोडा वेळ (Dely) द्यावा लागतो
-  setTimeout(() => {
-    const baseItems = Array.from(sliderTrack.children);
-    baseItems.forEach(item => sliderTrack.appendChild(item.cloneNode(true)));
-
-    let baseWidth = 0;
-    baseItems.forEach(item => (baseWidth += item.offsetWidth + 26));
-
-    function runAutoSlider() {
-      currentOffset -= moveSpeed;
-      if (Math.abs(currentOffset) >= baseWidth) currentOffset = 0;
-      sliderTrack.style.transform = `translateX(${currentOffset}px)`;
-      requestAnimationFrame(runAutoSlider);
-    }
-    runAutoSlider();
-  }, 500); 
-
-  sliderViewport.addEventListener("mouseenter", () => (moveSpeed = 0));
-  sliderViewport.addEventListener("mouseleave", () => (moveSpeed = 1.5));
+  // माउस नेल्यावर स्लाइडर थांबवण्यासाठी
+  if (sliderViewport) {
+      sliderViewport.addEventListener("mouseenter", () => (moveSpeed = 0));
+      sliderViewport.addEventListener("mouseleave", () => (moveSpeed = 1.5));
+  }
 });
 
 //PLACEMENT JS
