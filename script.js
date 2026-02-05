@@ -229,7 +229,10 @@ document.addEventListener("DOMContentLoaded", async () => {
   sliderViewport.addEventListener("mouseleave", () => (moveSpeed = 1.5));
 });
 
-//PLACEMENT JS
+// ------------------------------
+// PLACEMENT JS (Full Code)
+// ------------------------------
+
 /* ===============================
    USER PANEL – Placements Scroll
 ================================ */
@@ -237,25 +240,35 @@ async function loadPlacementsFromBackend() {
   const scrollDown = document.getElementById("scrollDown");
   const scrollUp = document.getElementById("scrollUp");
   if (!scrollDown || !scrollUp) return;
+  
   try {
     const res = await fetch(`${BASE_URL}/api/placements`);
     const data = await res.json();
+    
     // Sort ascending by student name
     data.sort((a, b) => a.name.localeCompare(b.name));
+    
     const scrollDownContent = scrollDown.querySelector(".scroll-content");
     const scrollUpContent = scrollUp.querySelector(".scroll-content");
+
+    // बॅकएंडचा डेटा लोड करण्यापूर्वी जुना कचरा (static cards) रिकामा करणे
+    scrollDownContent.innerHTML = "";
+    scrollUpContent.innerHTML = "";
+
     // Helper to create card HTML
+    // बदल: p.package ऐवजी p.pkg वापरले आणि इमेज पाथ थेट p.image ठेवला
     const createCard = (p) => `
       <div class="placement-card">
-        <img src="${BASE_URL}${p.image}" alt="${p.name}">
+        <img src="${p.image}" alt="${p.name}">
         <div class="card-info">
           <h4>${p.name}</h4>
           <span>${p.role}</span>
           <p>${p.company}</p>
-          <strong>${p.package}</strong>
+          <strong>${p.pkg}</strong>
         </div>
       </div>
     `;
+
     // Split half-half
     const half = Math.ceil(data.length / 2);
     data
@@ -264,56 +277,74 @@ async function loadPlacementsFromBackend() {
     data
       .slice(half)
       .forEach((p) => (scrollUpContent.innerHTML += createCard(p)));
+      
   } catch (err) {
     console.error("Error fetching placements:", err);
   }
 }
+
 /* ===============================
    Scroll + Pause Logic
 ================================ */
 window.addEventListener("load", async () => {
   // Load backend placements
   await loadPlacementsFromBackend();
+  
   const scrollDown = document.getElementById("scrollDown");
   const scrollUp = document.getElementById("scrollUp");
   const speed = 1; // scroll speed
   let pauseDown = false;
   let pauseUp = false;
+
   // Duplicate content for seamless scroll
   const duplicate = (scroller) => {
     const content = scroller.querySelector(".scroll-content");
-    content.innerHTML += content.innerHTML;
+    if (content) {
+      content.innerHTML += content.innerHTML;
+    }
   };
+  
   duplicate(scrollDown);
   duplicate(scrollUp);
+
   // Pause events
   [
     { el: scrollDown, flag: (val) => (pauseDown = val) },
     { el: scrollUp, flag: (val) => (pauseUp = val) },
   ].forEach(({ el, flag }) => {
+    if(!el) return;
     el.addEventListener("mouseenter", () => flag(true));
     el.addEventListener("mouseleave", () => flag(false));
-    el.addEventListener("click", () => flag(!flag)); // toggle on click
+    el.addEventListener("click", () => flag(!pauseDown)); // toggle logic
     el.addEventListener("touchstart", () => flag(true));
     el.addEventListener("touchend", () => flag(false));
   });
+
   // Animation loop
   function animate() {
     const isDesktop = window.innerWidth > 768;
     if (isDesktop) {
-      if (!pauseDown) scrollDown.scrollTop += speed;
-      if (!pauseUp) scrollUp.scrollTop -= speed;
-      if (scrollDown.scrollTop >= scrollDown.scrollHeight / 2)
-        scrollDown.scrollTop = 0;
-      if (scrollUp.scrollTop <= 0)
-        scrollUp.scrollTop = scrollUp.scrollHeight / 2;
+      if (!pauseDown && scrollDown) {
+        scrollDown.scrollTop += speed;
+        if (scrollDown.scrollTop >= scrollDown.scrollHeight / 2)
+          scrollDown.scrollTop = 0;
+      }
+      if (!pauseUp && scrollUp) {
+        scrollUp.scrollTop -= speed;
+        if (scrollUp.scrollTop <= 0)
+          scrollUp.scrollTop = scrollUp.scrollHeight / 2;
+      }
     } else {
-      if (!pauseDown) scrollDown.scrollLeft += speed;
-      if (!pauseUp) scrollUp.scrollLeft -= speed;
-      if (scrollDown.scrollLeft >= scrollDown.scrollWidth / 2)
-        scrollDown.scrollLeft = 0;
-      if (scrollUp.scrollLeft <= 0)
-        scrollUp.scrollLeft = scrollUp.scrollWidth / 2;
+      if (!pauseDown && scrollDown) {
+        scrollDown.scrollLeft += speed;
+        if (scrollDown.scrollLeft >= scrollDown.scrollWidth / 2)
+          scrollDown.scrollLeft = 0;
+      }
+      if (!pauseUp && scrollUp) {
+        scrollUp.scrollLeft -= speed;
+        if (scrollUp.scrollLeft <= 0)
+          scrollUp.scrollLeft = scrollUp.scrollWidth / 2;
+      }
     }
     requestAnimationFrame(animate);
   }
