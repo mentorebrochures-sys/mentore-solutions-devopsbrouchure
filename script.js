@@ -127,7 +127,7 @@ async function updateUpcomingBatch() {
 document.addEventListener("DOMContentLoaded", updateUpcomingBatch);
 
 // ===============================
-// Training Js (Updated with Date & Duration)
+// Training Js (Updated)
 // ===============================
 document.addEventListener("DOMContentLoaded", async () => {
   const sliderTrack = document.querySelector(".training-track");
@@ -137,11 +137,14 @@ document.addEventListener("DOMContentLoaded", async () => {
   let moveSpeed = 1.5;
   let currentOffset = 0;
 
-  // तारीख DD-MM-YYYY फॉरमॅटमध्ये करण्यासाठी हेल्पर फंक्शन
+  // तारीख DD-MM-YYYY फॉरमॅटमध्ये करण्यासाठी फंक्शन
   function formatDate(dateStr) {
     if (!dateStr) return "TBA";
     const date = new Date(dateStr);
-    return `${String(date.getDate()).padStart(2, '0')}-${String(date.getMonth() + 1).padStart(2, '0')}-${date.getFullYear()}`;
+    const day = String(date.getDate()).padStart(2, '0');
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const year = date.getFullYear();
+    return `${day}-${month}-${year}`;
   }
 
   // ================= BACKEND TRAININGS FETCH =================
@@ -153,13 +156,13 @@ document.addEventListener("DOMContentLoaded", async () => {
       const card = document.createElement("div");
       card.className = "training-card";
       
-      // बदल: इथे duration आणि start_date चे स्पॅन्स ॲड केले आहेत
+      // बदल: इथे t.start_date आणि t.duration वापरले आहे
       card.innerHTML = `
         <i class="${t.icon}"></i>
         <h4>${t.name}</h4>
-        <div class="training-details">
-          <span>📅 Start: ${formatDate(t.start_date)}</span>
-          <span>⏱ Duration: ${t.duration || 'Flexible'}</span>
+        <div class="training-info">
+          <span>📅 ${formatDate(t.start_date)}</span>
+          <span>⏱ ${t.duration || 'Flexible'}</span>
         </div>
       `;
       sliderTrack.appendChild(card);
@@ -168,8 +171,8 @@ document.addEventListener("DOMContentLoaded", async () => {
     console.error("Error loading trainings from DB:", err);
   }
 
-  // ================= DUPLICATE CARDS FOR INFINITE SCROLL =================
-  // डेटा लोड झाल्यावर थोडा वेळ थांबावा लागतो जेणेकरून offsetWidth अचूक मिळेल
+  // ================= DUPLICATE CARDS & SLIDER LOGIC =================
+  // डेटा लोड झाल्यावर विड्थ मोजण्यासाठी थोडा वेळ (Dely) द्यावा लागतो
   setTimeout(() => {
     const baseItems = Array.from(sliderTrack.children);
     baseItems.forEach(item => sliderTrack.appendChild(item.cloneNode(true)));
@@ -177,7 +180,6 @@ document.addEventListener("DOMContentLoaded", async () => {
     let baseWidth = 0;
     baseItems.forEach(item => (baseWidth += item.offsetWidth + 26));
 
-    // ================= RUN SLIDER =================
     function runAutoSlider() {
       currentOffset -= moveSpeed;
       if (Math.abs(currentOffset) >= baseWidth) currentOffset = 0;
@@ -185,9 +187,8 @@ document.addEventListener("DOMContentLoaded", async () => {
       requestAnimationFrame(runAutoSlider);
     }
     runAutoSlider();
-  }, 500); // 500ms चा डिले दिला आहे जेणेकरून इमेजेस/आयकॉन्स लोड होतील
+  }, 500); 
 
-  // pause on hover
   sliderViewport.addEventListener("mouseenter", () => (moveSpeed = 0));
   sliderViewport.addEventListener("mouseleave", () => (moveSpeed = 1.5));
 });
