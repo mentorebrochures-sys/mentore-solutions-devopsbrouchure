@@ -21,7 +21,8 @@ async function loadCertificates() {
     // फक्त नवीन सर्टिफिकेट्स फिल्टर करा जे आधी लोड झाले नाहीत
     const newCerts = certs.filter(c => !prevCertIds.includes(c.id));
     
-    if (newCerts.length === 0) return; // काहीही नवीन नसेल तर थांबवा
+    // जर काहीच नवीन नसेल, तर पुढचे लॉजिक रन करू नका
+    if (newCerts.length === 0) return;
 
     // नवीन सर्टिफिकेट्स दोन भागात विभागणे
     const mid = Math.ceil(newCerts.length / 2);
@@ -31,7 +32,7 @@ async function loadCertificates() {
     // --- Scroller 1 मध्ये इमेज जोडणे ---
     firstHalf.forEach(c => {
       const img = document.createElement("img");
-      // Supabase कडून डायरेक्ट Public URL मिळते, म्हणून ती तशीच वापरणे
+      // Supabase कडून मिळणारी URL थेट वापरणे
       img.src = c.image; 
       img.alt = "Global Certificate";
       img.classList.add("admin-cert");
@@ -47,27 +48,37 @@ async function loadCertificates() {
       scroller2.appendChild(img);
     });
 
-    // --- Seamless Scroll साठी लॉजिक (फक्त पहिल्यांदा किंवा अपडेट झाल्यावर) ---
-    setupSeamlessScroll(scroller1);
-    setupSeamlessScroll(scroller2);
+    // ॲनिमेशन रिसेट आणि क्लोनिंग (Seamless Scroll साठी)
+    refreshScrollerAnimation(scroller1);
+    refreshScrollerAnimation(scroller2);
 
     // ID ट्रॅकर अपडेट करणे
     prevCertIds = certs.map(c => c.id);
 
   } catch (err) {
-    console.error("Error loading certificates from Supabase:", err);
+    console.error("Error loading certificates:", err);
   }
 }
 
-// स्क्रोलिंग स्मूथ करण्यासाठी फंक्शन
-function setupSeamlessScroll(track) {
-  // आधीचा पूर्ण डेटा पुन्हा जोडा (Duplicate) जेणेकरून गॅप पडणार नाही
-  const clones = Array.from(track.children).map(node => node.cloneNode(true));
-  clones.forEach(clone => track.appendChild(clone));
+// स्क्रोलिंग स्मूथ आणि अपडेटेड ठेवण्यासाठी फंक्शन
+function refreshScrollerAnimation(track) {
+  // 1. आधीचे क्लोन्स काढून टाका (जर असतील तर) जेणेकरून गॅप पडणार नाही
+  // आम्ही फक्त ओरिजिनल इमेजेस ठेवतो आणि पुन्हा क्लोन करतो
+  const originalImages = Array.from(track.querySelectorAll('img:not(.clone)'));
+  track.innerHTML = ''; // पूर्ण साफ करा
+  
+  originalImages.forEach(img => track.appendChild(img)); // ओरिजिनल परत टाका
+  
+  // 2. आता पुन्हा क्लोन करा
+  originalImages.forEach(img => {
+    const clone = img.cloneNode(true);
+    clone.classList.add('clone');
+    track.appendChild(clone);
+  });
 
-  // ॲनिमेशनचा वेग ऍडजस्ट करणे
+  // 3. ॲनिमेशन ड्युरेशन सेट करा
   const totalWidth = track.scrollWidth / 2;
-  const duration = totalWidth / 50; // स्पीड कमी/जास्त करण्यासाठी ५० बदला
+  const duration = totalWidth / 40; 
   track.style.animationDuration = `${duration}s`;
 }
 
@@ -76,7 +87,10 @@ document.addEventListener("DOMContentLoaded", () => {
   // सुरुवातीला लोड करा
   loadCertificates();
 
-  // टायपिंग इफेक्ट (तुमचा जुना कोड)
+  // दर १० सेकंदाला चेक करा काही नवीन सर्टिफिकेट आले आहे का
+  setInterval(loadCertificates, 10000);
+
+  // टायपिंग इफेक्ट
   const el = document.querySelector(".banner-tagline");
   if (el) {
     const text = el.textContent.trim();
@@ -92,6 +106,7 @@ document.addEventListener("DOMContentLoaded", () => {
     type();
   }
 });
+
 // ============================
 // COURSE SECTION - USER PANEL
 // ============================
