@@ -229,96 +229,135 @@ document.addEventListener("DOMContentLoaded", async () => {
   sliderViewport.addEventListener("mouseleave", () => (moveSpeed = 1.5));
 });
 
-//PLACEMENT JS
 /* ===============================
    USER PANEL – Placements Scroll
 ================================ */
 async function loadPlacementsFromBackend() {
   const scrollDown = document.getElementById("scrollDown");
   const scrollUp = document.getElementById("scrollUp");
+
   if (!scrollDown || !scrollUp) return;
+
   try {
+    // Backend कडून डेटा मिळवा
     const res = await fetch(`${BASE_URL}/api/placements`);
     const data = await res.json();
-    // Sort ascending by student name
+
+    if (!data || data.length === 0) return;
+
+    // नावानुसार सॉर्ट करा
     data.sort((a, b) => a.name.localeCompare(b.name));
+
     const scrollDownContent = scrollDown.querySelector(".scroll-content");
     const scrollUpContent = scrollUp.querySelector(".scroll-content");
-    // Helper to create card HTML
+
+    // जुना (Static) डेटा साफ करा
+    scrollDownContent.innerHTML = "";
+    scrollUpContent.innerHTML = "";
+
+    // Helper: कार्ड बनवण्यासाठी फंक्शन
+    // बदल: p.package ऐवजी p.pkg वापरले आहे आणि इमेजला BASE_URL काढला आहे
     const createCard = (p) => `
       <div class="placement-card">
-        <img src="${BASE_URL}${p.image}" alt="${p.name}">
+        <img src="${p.image}" alt="${p.name}">
         <div class="card-info">
           <h4>${p.name}</h4>
           <span>${p.role}</span>
           <p>${p.company}</p>
-          <strong>${p.package}</strong>
+          <strong>${p.pkg}</strong>
         </div>
       </div>
     `;
-    // Split half-half
+
+    // डेटा दोन भागात विभागून स्क्रोलर्समध्ये टाकणे
     const half = Math.ceil(data.length / 2);
-    data
-      .slice(0, half)
-      .forEach((p) => (scrollDownContent.innerHTML += createCard(p)));
-    data
-      .slice(half)
-      .forEach((p) => (scrollUpContent.innerHTML += createCard(p)));
+    const firstHalf = data.slice(0, half);
+    const secondHalf = data.slice(half);
+
+    firstHalf.forEach((p) => (scrollDownContent.innerHTML += createCard(p)));
+    secondHalf.forEach((p) => (scrollUpContent.innerHTML += createCard(p)));
+
+    // डेटा टाकल्यानंतर क्लोनिंग करणे (Seamless Scroll साठी)
+    duplicateContent(scrollDown);
+    duplicateContent(scrollUp);
+
   } catch (err) {
     console.error("Error fetching placements:", err);
   }
 }
+
+// क्लोनिंग करण्यासाठी वेगळे फंक्शन
+function duplicateContent(scroller) {
+  const content = scroller.querySelector(".scroll-content");
+  if (!content) return;
+  
+  // आधीचे क्लोन्स काढून टाका (जर पुन्हा लोड झाले तर)
+  const originalCards = content.querySelectorAll('.placement-card:not(.clone)');
+  content.innerHTML = ""; 
+  originalCards.forEach(card => content.appendChild(card));
+
+  // नवीन क्लोन्स जोडा
+  originalCards.forEach(card => {
+    const clone = card.cloneNode(true);
+    clone.classList.add('clone');
+    content.appendChild(clone);
+  });
+}
+
 /* ===============================
-   Scroll + Pause Logic
+   Scroll + Animation Logic
 ================================ */
 window.addEventListener("load", async () => {
-  // Load backend placements
   await loadPlacementsFromBackend();
+
   const scrollDown = document.getElementById("scrollDown");
   const scrollUp = document.getElementById("scrollUp");
-  const speed = 1; // scroll speed
+  const speed = 1; 
   let pauseDown = false;
   let pauseUp = false;
-  // Duplicate content for seamless scroll
-  const duplicate = (scroller) => {
-    const content = scroller.querySelector(".scroll-content");
-    content.innerHTML += content.innerHTML;
-  };
-  duplicate(scrollDown);
-  duplicate(scrollUp);
-  // Pause events
-  [
-    { el: scrollDown, flag: (val) => (pauseDown = val) },
-    { el: scrollUp, flag: (val) => (pauseUp = val) },
-  ].forEach(({ el, flag }) => {
-    el.addEventListener("mouseenter", () => flag(true));
-    el.addEventListener("mouseleave", () => flag(false));
-    el.addEventListener("click", () => flag(!flag)); // toggle on click
-    el.addEventListener("touchstart", () => flag(true));
-    el.addEventListener("touchend", () => flag(false));
+
+  // Pause events logic
+  const setups = [
+    { el: scrollDown, setPause: (val) => (pauseDown = val) },
+    { el: scrollUp, setPause: (val) => (pauseUp = val) }
+  ];
+
+  setups.forEach(({ el, setPause }) => {
+    if(!el) return;
+    el.addEventListener("mouseenter", () => setPause(true));
+    el.addEventListener("mouseleave", () => setPause(false));
+    el.addEventListener("touchstart", () => setPause(true));
+    el.addEventListener("touchend", () => setPause(false));
   });
-  // Animation loop
+
   function animate() {
     const isDesktop = window.innerWidth > 768;
+    
     if (isDesktop) {
-      if (!pauseDown) scrollDown.scrollTop += speed;
-      if (!pauseUp) scrollUp.scrollTop -= speed;
-      if (scrollDown.scrollTop >= scrollDown.scrollHeight / 2)
-        scrollDown.scrollTop = 0;
-      if (scrollUp.scrollTop <= 0)
-        scrollUp.scrollTop = scrollUp.scrollHeight / 2;
+      if (!pauseDown && scrollDown) {
+        scrollDown.scrollTop += speed;
+        if (scrollDown.scrollTop >= scrollDown.scrollHeight / 2) scrollDown.scrollTop = 0;
+      }
+      if (!pauseUp && scrollUp) {
+        scrollUp.scrollTop -= speed;
+        if (scrollUp.scrollTop <= 0) scrollUp.scrollTop = scrollUp.scrollHeight / 2;
+      }
     } else {
-      if (!pauseDown) scrollDown.scrollLeft += speed;
-      if (!pauseUp) scrollUp.scrollLeft -= speed;
-      if (scrollDown.scrollLeft >= scrollDown.scrollWidth / 2)
-        scrollDown.scrollLeft = 0;
-      if (scrollUp.scrollLeft <= 0)
-        scrollUp.scrollLeft = scrollUp.scrollWidth / 2;
+      if (!pauseDown && scrollDown) {
+        scrollDown.scrollLeft += speed;
+        if (scrollDown.scrollLeft >= scrollDown.scrollWidth / 2) scrollDown.scrollLeft = 0;
+      }
+      if (!pauseUp && scrollUp) {
+        scrollUp.scrollLeft -= speed;
+        if (scrollUp.scrollLeft <= 0) scrollUp.scrollLeft = scrollUp.scrollWidth / 2;
+      }
     }
     requestAnimationFrame(animate);
   }
   animate();
 });
+
+
 // CONTACT JS
 // ===============================
 // USER PANEL – CONTACT (FOOTER) JS
