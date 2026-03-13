@@ -144,35 +144,60 @@ function formatDisplayDate(dateStr) {
 /**
  * डेटाबेस मधून Duration आणि Start Date अपडेट करणे
  */
+// ==========================================
+// DEVOPS COURSE - USER PANEL FETCH LOGIC
+// ==========================================
+
+const DEVOPS_API = `${BASE_URL}/api/courses`; // खात्री करा की हा एंडपॉईंट बरोबर आहे
+
+/**
+ * DevOps बॅचची माहिती अपडेट करणे
+ */
 async function updateDevOpsBatch() {
   try {
-    // समजा तुमचा DevOps API असा आहे
-    const DEVOPS_API = `${BASE_URL}/api/devops-courses`; 
     const res = await fetch(DEVOPS_API);
     const courses = await res.json();
     
-    if (Array.isArray(courses) && courses.length > 0) {
-      // नवीनतम बॅच मिळवा
-      const latest = courses.sort((a, b) => b.id - a.id)[0];
-
-      // HTML Elements मिळवा
-      const dateSpan = document.getElementById("devops-start-date");
-      const durationSpan = document.getElementById("devops-duration");
-      const timeSpan = document.getElementById("devops-batch-time");
-
-      // डेटा अपडेट करा
-      if (dateSpan) dateSpan.innerHTML = `📅 New Batch Starting On : ${formatDisplayDate(latest.start_date)}`;
-      if (durationSpan) durationSpan.innerHTML = `⏱ Duration: ${latest.duration}`;
-      
-      // बॅच टाइम अपडेट करा
-      if (timeSpan) {
-        timeSpan.innerHTML = `⏰ Batch Time: ${latest.batch_time || "Morning/Evening"}`;
-      }
+    // १. डेटाची तपासणी
+    if (!courses || !Array.isArray(courses) || courses.length === 0) {
+        console.warn("DevOps डेटा सापडला नाही.");
+        return;
     }
+
+    // २. नवीनतम (Latest) बॅच मिळवा (ID नुसार सॉर्ट करून)
+    const latest = courses.sort((a, b) => b.id - a.id)[0];
+    console.log("Latest DevOps Data:", latest);
+
+    // ३. HTML मधील Elements शोधणे (IDs तपासा)
+    const dateSpan = document.getElementById("devops-start-date");
+    const durationSpan = document.getElementById("devops-duration");
+    const timeSpan = document.getElementById("devops-batch-time");
+
+    // ४. डेटा सेट करणे
+    if (dateSpan) {
+      dateSpan.innerHTML = `📅 New Batch Starting On : ${formatDisplayDate(latest.start_date)}`;
+    }
+    
+    if (durationSpan) {
+      durationSpan.innerHTML = `⏱ Duration: ${latest.duration || "3 Months"}`;
+    }
+
+    if (timeSpan) {
+      // 'batch_time' हे नाव तुमच्या DB कॉलमशी जुळायला हवे
+      timeSpan.innerHTML = `⏰ Batch Time: ${latest.batch_time || "TBA"}`;
+    }
+
+    console.log("✅ DevOps UI यशस्वीरित्या अपडेट झाले!");
   } catch (err) {
     console.error("DevOps Fetch Error:", err);
   }
 }
+
+// पेज लोड झाल्यावर रन करण्यासाठी
+document.addEventListener("DOMContentLoaded", () => {
+    // इतर फंक्शन्स सोबत हे देखील कॉल करा
+    updateDevOpsBatch(); 
+});
 
 // पेज लोड झाल्यावर रन करा
 document.addEventListener("DOMContentLoaded", () => {
