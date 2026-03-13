@@ -179,12 +179,12 @@ async function updateDevOpsBatch() {
     }
     
     if (durationSpan) {
-      durationSpan.innerHTML = `⏱ Duration: ${latest.duration || "3 Months"}`;
+      durationSpan.innerHTML = `⌛ Duration: ${latest.duration || "3 Months"}`;
     }
 
     if (timeSpan) {
       // 'batch_time' हे नाव तुमच्या DB कॉलमशी जुळायला हवे
-      timeSpan.innerHTML = `⏰ Batch Time: ${latest.batch_time || "TBA"}`;
+      timeSpan.innerHTML = `🕒 Batch Time: ${latest.batch_time || "TBA"}`;
     }
 
     console.log("✅ DevOps UI यशस्वीरित्या अपडेट झाले!");
