@@ -144,40 +144,33 @@ function formatDisplayDate(dateStr) {
 /**
  * डेटाबेस मधून Duration आणि Start Date अपडेट करणे
  */
-async function updateUpcomingBatch() {
+async function updateDevOpsBatch() {
   try {
-    const res = await fetch(COURSE_API);
+    // समजा तुमचा DevOps API असा आहे
+    const DEVOPS_API = `${BASE_URL}/api/devops-courses`; 
+    const res = await fetch(DEVOPS_API);
     const courses = await res.json();
     
-    // डेटा तपासणी
-    if (!courses || !Array.isArray(courses) || courses.length === 0) {
-        console.warn("No course data available.");
-        return;
-    }
+    if (Array.isArray(courses) && courses.length > 0) {
+      // नवीनतम बॅच मिळवा
+      const latest = courses.sort((a, b) => b.id - a.id)[0];
 
-    // शेवटचा (Latest) कोर्स मिळवणे (ID नुसार सॉर्ट असल्यास उत्तम, अन्यथा शेवटचा इंडेक्स)
-    const latest = courses[courses.length - 1];
-    
-    // HTML मधले Elements शोधणे
-    const courseInfo = document.querySelector("#courses .course-info");
-    
-    if (courseInfo && latest) {
-      const spans = courseInfo.querySelectorAll("span");
+      // HTML Elements मिळवा
+      const dateSpan = document.getElementById("devops-start-date");
+      const durationSpan = document.getElementById("devops-duration");
+      const timeSpan = document.getElementById("devops-batch-time");
+
+      // डेटा अपडेट करा
+      if (dateSpan) dateSpan.innerHTML = `📅 New Batch Starting On : ${formatDisplayDate(latest.start_date)}`;
+      if (durationSpan) durationSpan.innerHTML = `⏱ Duration: ${latest.duration}`;
       
-      if (spans.length >= 2) {
-        // 1. Start Date अपडेट करा
-        const startDate = latest.start_date ? formatDisplayDate(latest.start_date) : "TBA";
-        spans[0].innerHTML = `📅 New Batch Starting On : ${startDate}`;
-        
-        // 2. Duration अपडेट करा (येथे नीट लक्ष द्या: latest.duration हे नाव DB कोलमशी जुळतेय का ते तपासा)
-        const durationText = latest.duration ? latest.duration : "6 Months";
-        spans[1].innerHTML = `⏱ Duration: ${durationText}`;
-        
-        console.log("Batch Data Updated:", latest);
+      // बॅच टाइम अपडेट करा
+      if (timeSpan) {
+        timeSpan.innerHTML = `⏰ Batch Time: ${latest.batch_time || "Morning/Evening"}`;
       }
     }
   } catch (err) {
-    console.error("Failed to load upcoming batch info:", err);
+    console.error("DevOps Fetch Error:", err);
   }
 }
 
